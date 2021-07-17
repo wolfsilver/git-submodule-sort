@@ -21,6 +21,8 @@
       }
     ]
   },
+  "publisher": "R",
+  "repository": "https://github.com/wolfsilver/git-submodule-sort",
   "scripts": {
     "lint": "eslint .",
     "pretest": "npm run lint",
