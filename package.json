@@ -2,7 +2,7 @@
   "name": "git-submodule-sort",
   "displayName": "git submodule sort",
   "description": "Sort the submodule and make the submodule look clearer",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.58.0"
   },
@@ -12,6 +12,7 @@
   "activationEvents": [
     "onCommand:git-submodule-sort.patch"
   ],
+  "icon": "logo.png",
   "main": "./extension.js",
   "contributes": {
     "commands": [
