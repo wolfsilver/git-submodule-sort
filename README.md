@@ -7,9 +7,9 @@ Therefore, this extension tries to make it clear. Like this.
 ![](https://user-images.githubusercontent.com/2452450/114032112-96670f00-98ae-11eb-8b27-7086bb9d9648.png)
 
 ## Usage
+
 open command palette (use `F1`, `Ctrl+Shift+P` (Windows & Linux) or `Cmd+Shift+P` (OS X))
 then select command `Enable git submodule sort`
-
 
 ## Requirements
 
@@ -24,7 +24,14 @@ submodule repo prefix
 ## Known Issues
 
 If VS Code complains about that it is corrupted, simply click “Don't show again”.
+
+After Visual Studio Code updated, please re-Enable git submodule sort.
+
 ## Release Notes
+
+### 0.0.3
+
+patch 1.59.x
 
 ### 0.0.1
 
