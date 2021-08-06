@@ -90,8 +90,9 @@ function transformer(ast, prefix = '┡') {
 								},
 								CallExpression: function (path) {
 									// r.name.textContent = f.basename(a.provider.rootUri)
-									if (path.node.callee.type === 'MemberExpression' &&
-										path.node.callee.property.name === 'basename'
+									// 1.59.0 a.name.textContent=(0,f.basename)(o.provider.rootUri)
+									if (t.isAssignmentExpression(path.parent) && path.node.arguments[0] && path.node.arguments[0].type === 'MemberExpression' &&
+										path.node.arguments[0].property.name === 'rootUri'
 									) {
 										if (!varVal) {
 											return;
