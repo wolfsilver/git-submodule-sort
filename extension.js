@@ -10,7 +10,6 @@ const t = require('@babel/types');
 const fileName = 'workbench.desktop.main.js';
 const backUpFileName = 'workbench.desktop.main.origin.js';
 const patchFileName = 'workbench.desktop.main.patch.js';
-const sortRepositoriesBody = template.ast`let sortIndexs = visibleRepositories.map((repo, index) => ({ index, uri: repo.provider.rootUri.path, children: [] })); sortIndexs.sort((a, b) => b.uri.length - a.uri.length); for (let i = sortIndexs.length; i--;) { const repo = sortIndexs[i]; const rootUri = repo.uri + '/'; for (let j = i; j--;) { if (sortIndexs[j].uri.includes(rootUri)) { repo.children = sortIndexs.splice(j, 1).concat(repo.children); --i; } } } sortIndexs.sort((a, b) => a.index - b.index); sortIndexs = sortIndexs.reduce((acc, repo) => { acc.push(repo, ...repo.children); return acc; }, []); return sortIndexs.map(({ index }) => visibleRepositories[index]);`;
 
 let BASE_PATH = '';
 let step = 0;
@@ -45,6 +44,7 @@ function restore() {
 
 
 async function patch() {
+	vscode.window.showInformationMessage('git submodule sort patch starts. It will take some time.')
 	step = 0;
 	const status = await backup();
 	if (!status) {
@@ -53,7 +53,41 @@ async function patch() {
 	const config = vscode.workspace.getConfiguration("git-submodule-sort");
 	const data = await fs.promises.readFile(path.resolve(BASE_PATH, backUpFileName), 'utf8')
 	const ast = parse(data);
-	transformer(ast, config.prefix);
+
+	const sortRepositoriesBody = template.ast`
+function _sort(repos, prefix) {
+  repos.sort((a, b) => b.uri.length - a.uri.length);
+  for (let i = repos.length; i--;) {
+    const repo = repos[i];
+    const rootUri = repo.uri + '/';
+    for (let j = i; j--;) {
+      if (repos[j].uri.includes(rootUri)) {
+        repos[j].prefix = prefix;
+        repo.children = repos.splice(j, 1).concat(repo.children);
+        --i;
+      }
+    }
+    repo.children = _sort(repo.children, '　' + prefix);
+  }
+  repos.sort((a, b) => a.index - b.index);
+  return repos.reduce((acc, repo) => { acc.push(repo, ...repo.children); return acc; }, []);
+}
+
+
+let sortIndexs = visibleRepositories.map((repo, index) => ({
+  index,
+  uri: repo.provider.rootUri.path,
+  children: []
+}));
+
+let sortedIndex = _sort(sortIndexs, '${config.prefix} ');
+
+return sortedIndex.map(({ index, prefix }) => {
+  visibleRepositories[index].provider.prefix = prefix;
+  return visibleRepositories[index];
+});`;
+
+	transformer(ast, sortRepositoriesBody);
 	if (step !== 4) {
 		vscode.window.showErrorMessage('git submodule sort patch failed!!');
 		return;
@@ -76,28 +110,30 @@ async function output(data) {
 		});
 }
 
-function transformer(ast, prefix = '┡') {
+function transformer(ast, sortRepositoriesBody) {
 	traverse(ast, {
 		ClassMethod: function (path) {
 			if (path.node.key.name === 'renderElement') {
 				if (path.toString().includes('.provider.rootUri')) {
-					let varVal = '';
 					path.traverse({
 						IfStatement: function (path) {
 							path.traverse({
-								VariableDeclarator: function (path) {
-									varVal = path.node.id.name;
-								},
 								CallExpression: function (path) {
 									// r.name.textContent = f.basename(a.provider.rootUri)
 									// 1.59.0 a.name.textContent=(0,f.basename)(o.provider.rootUri)
 									if (t.isAssignmentExpression(path.parent) && path.node.arguments[0] && path.node.arguments[0].type === 'MemberExpression' &&
 										path.node.arguments[0].property.name === 'rootUri'
 									) {
-										if (!varVal) {
-											return;
-										}
-										path.replaceWith(t.binaryExpression('+', t.conditionalExpression(t.identifier(varVal), t.stringLiteral(`${prefix} `), t.stringLiteral('')), path.node));
+										path.replaceWith(
+											t.binaryExpression(
+												'+',
+												t.memberExpression(
+													t.memberExpression(t.identifier(path.node.arguments[0].object.object.name), t.identifier('provider')),
+													t.identifier('prefix')
+												),
+												path.node
+											)
+										);
 										path.skip();
 										step++;
 									}
