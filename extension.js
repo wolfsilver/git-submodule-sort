@@ -54,8 +54,7 @@ async function patch() {
 	const data = await fs.promises.readFile(path.resolve(BASE_PATH, backUpFileName), 'utf8')
 	const ast = parse(data);
 
-	const sortRepositoriesBody = template.ast`
-function _sort(repos, prefix) {
+	const sortRepositoriesBody = template.ast(`function _sort(repos, prefix) {
   repos.sort((a, b) => b.uri.length - a.uri.length);
   for (let i = repos.length; i--;) {
     const repo = repos[i];
@@ -80,12 +79,12 @@ let sortIndexs = visibleRepositories.map((repo, index) => ({
   children: []
 }));
 
-let sortedIndex = _sort(sortIndexs, '${config.prefix} ');
+let sortedIndex = _sort(sortIndexs, '${config.prefix || '┡'} ');
 
 return sortedIndex.map(({ index, prefix }) => {
   visibleRepositories[index].provider.prefix = prefix;
   return visibleRepositories[index];
-});`;
+});`);
 
 	transformer(ast, sortRepositoriesBody);
 	if (step !== 4) {
