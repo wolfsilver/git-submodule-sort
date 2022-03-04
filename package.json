@@ -2,7 +2,7 @@
   "name": "git-submodule-sort",
   "displayName": "git submodule sort",
   "description": "Sort the submodule and make the submodule look clearer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "engines": {
     "vscode": "^1.58.0"
   },
@@ -20,7 +20,17 @@
         "command": "git-submodule-sort.patch",
         "title": "Enable git submodule sort"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "git submodule sort",
+      "properties": {
+        "git-submodule-sort.prefix": {
+          "description": "submodule repo prefix",
+          "type": "string",
+          "default": "┡"
+        }
+      }
+    }
   },
   "publisher": "R",
   "repository": "https://github.com/wolfsilver/git-submodule-sort",
