@@ -2,7 +2,7 @@
   "name": "git-submodule-sort",
   "displayName": "git submodule sort",
   "description": "Sort the submodule and make the submodule look clearer",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "engines": {
     "vscode": "^1.58.0"
   },
