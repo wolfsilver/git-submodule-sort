@@ -166,15 +166,16 @@ function transformer(ast, sortRepositoriesBody) {
 				})
 			}
 			if (path.node.key.name === 'onDidAddRepository') {
-				if (path.toString().includes('this._visibleRepositories.push')) {
+				if (path.toString().includes('this.insertRepository(this._visibleRepositories')) {
 					path.traverse({
 						SequenceExpression: function (path) {
 							path.traverse({
 								CallExpression: function (path) {
 									if (path.node.callee.type === 'MemberExpression' &&
-										path.node.callee.property.name === 'push' &&
-										path.node.callee.object.type === 'MemberExpression' &&
-										path.node.callee.object.property.name === '_visibleRepositories'
+										path.node.callee.property.name === 'insertRepository' &&
+										path.node.callee.object.type === 'ThisExpression' &&
+										path.node.arguments[0].type === 'MemberExpression' &&
+										path.node.arguments[0].property.name === '_visibleRepositories'
 									) {
 										// this._visibleRepositories = this.sortRepositories(this._visibleRepositories)
 										const exp = t.assignmentExpression('=',
@@ -192,7 +193,7 @@ function transformer(ast, sortRepositoriesBody) {
 												)]
 											)
 										)
-										path.parent.expressions.splice(1, 0, exp);
+										path.parent.expressions.splice(2, 0, exp);
 										path.skip();
 										path.parentPath.skip();
 										step++;
