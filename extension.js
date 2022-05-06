@@ -42,6 +42,9 @@ function restore() {
 
 }
 
+const getRepositoriesBody = template.ast(`return this.sortRepositories(this._repositories)
+			.filter(r => r.selectionIndex !== -1)
+			.map(r => r.repository);`);
 
 async function patch() {
 	vscode.window.showInformationMessage('git submodule sort patch starts. It will take some time.')
@@ -75,19 +78,19 @@ async function patch() {
 
 let sortIndexs = visibleRepositories.map((repo, index) => ({
   index,
-  uri: repo.provider.rootUri.path,
+  uri: repo.repository.provider.rootUri.path,
   children: []
 }));
 
 let sortedIndex = _sort(sortIndexs, '${config.prefix || '┡'} ');
 
 return sortedIndex.map(({ index, prefix }) => {
-  visibleRepositories[index].provider.prefix = prefix;
+  visibleRepositories[index].repository.provider.prefix = prefix;
   return visibleRepositories[index];
 });`);
 
 	transformer(ast, sortRepositoriesBody);
-	if (step !== 4) {
+	if (step !== 3) {
 		vscode.window.showErrorMessage('git submodule sort patch failed!!');
 		return;
 	}
@@ -142,67 +145,12 @@ function transformer(ast, sortRepositoriesBody) {
 					});
 				}
 			}
-			if (path.node.kind === 'set' && path.node.key.name === 'visibleRepositories') {
-				path.traverse({
-					SequenceExpression: function (path) {
-						path.traverse({
-							AssignmentExpression: function (path) {
-								if (path.node.left.type === 'MemberExpression' &&
-									path.node.left.property.name === '_visibleRepositories') {
-									path.node.right = (
-										t.callExpression(
-											t.memberExpression(
-												t.thisExpression(),
-												t.identifier('sortRepositories')
-											), [path.node.right]
-										)
-									)
-									path.skip();
-									step++;
-								}
-							}
-						})
-					}
-				})
+			if (path.node.kind === 'get' && path.node.key.name === 'visibleRepositories') {
+				path.node.body = t.blockStatement([getRepositoriesBody])
+				step++;
 			}
 			if (path.node.key.name === 'onDidAddRepository') {
-				if (path.toString().includes('this.insertRepository(this._visibleRepositories')) {
-					path.traverse({
-						SequenceExpression: function (path) {
-							path.traverse({
-								CallExpression: function (path) {
-									if (path.node.callee.type === 'MemberExpression' &&
-										path.node.callee.property.name === 'insertRepository' &&
-										path.node.callee.object.type === 'ThisExpression' &&
-										path.node.arguments[0].type === 'MemberExpression' &&
-										path.node.arguments[0].property.name === '_visibleRepositories'
-									) {
-										// this._visibleRepositories = this.sortRepositories(this._visibleRepositories)
-										const exp = t.assignmentExpression('=',
-											t.memberExpression(
-												t.thisExpression(),
-												t.identifier('_visibleRepositories')
-											),
-											t.callExpression(
-												t.memberExpression(
-													t.thisExpression(),
-													t.identifier('sortRepositories')
-												), [t.memberExpression(
-													t.thisExpression(),
-													t.identifier('_visibleRepositories')
-												)]
-											)
-										)
-										path.parent.expressions.splice(2, 0, exp);
-										path.skip();
-										path.parentPath.skip();
-										step++;
-									}
-								}
-							});
-						}
-					});
-
+				if (path.toString().includes('this.didFinishLoading')) {
 					const sortRepositories = t.classMethod('method', t.identifier('sortRepositories'), [t.identifier('visibleRepositories')], t.blockStatement(sortRepositoriesBody))
 					path.insertAfter(sortRepositories);
 					step++;
