@@ -129,9 +129,13 @@ function transformer(ast, sortRepositoriesBody) {
 										path.replaceWith(
 											t.binaryExpression(
 												'+',
-												t.memberExpression(
-													t.memberExpression(t.identifier(path.node.arguments[0].object.object.name), t.identifier('provider')),
-													t.identifier('prefix')
+												t.logicalExpression(
+													"||",
+													t.memberExpression(
+														t.memberExpression(t.identifier(path.node.arguments[0].object.object.name), t.identifier('provider')),
+														t.identifier('prefix')
+													),
+													t.stringLiteral('')
 												),
 												path.node
 											)
