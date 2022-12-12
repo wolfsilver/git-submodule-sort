@@ -42,9 +42,7 @@ function restore() {
 
 }
 
-const getRepositoriesBody = template.ast(`return this.sortRepositories(this._repositories)
-			.filter(r => r.selectionIndex !== -1)
-			.map(r => r.repository);`);
+
 
 async function patch() {
 	vscode.window.showInformationMessage('git submodule sort patch starts. It will take some time.')
@@ -150,11 +148,15 @@ function transformer(ast, sortRepositoriesBody) {
 				}
 			}
 			if (path.node.kind === 'get' && path.node.key.name === 'visibleRepositories') {
+				const propertyName = path.node.body.body[0].argument.consequent.callee.object.callee.object.callee.object.property.name
+				const getRepositoriesBody = template.ast(`return this.sortRepositories(this.${propertyName})
+					.filter(r => r.selectionIndex !== -1)
+					.map(r => r.repository);`);
 				path.node.body = t.blockStatement([getRepositoriesBody])
 				step++;
 			}
-			if (path.node.key.name === 'onDidAddRepository') {
-				if (path.toString().includes('this.didFinishLoading')) {
+			if (path.node.key.name === 'toggleVisibility') {
+				if (path.toString().includes('this.visibleRepositories')) {
 					const sortRepositories = t.classMethod('method', t.identifier('sortRepositories'), [t.identifier('visibleRepositories')], t.blockStatement(sortRepositoriesBody))
 					path.insertAfter(sortRepositories);
 					step++;

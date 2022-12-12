@@ -4,7 +4,7 @@
   "description": "Sort the submodule and make the submodule look clearer",
   "version": "0.1.4",
   "engines": {
-    "vscode": "^1.67.0"
+    "vscode": "^1.74.0"
   },
   "categories": [
     "Other"
