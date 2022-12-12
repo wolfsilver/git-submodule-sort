@@ -29,6 +29,10 @@ After Visual Studio Code updated, please re-Enable git submodule sort.
 
 ## Release Notes
 
+### 0.1.5
+
+patch 1.74.x
+
 ### 0.1.2
 
 patch 1.66.x
