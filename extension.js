@@ -81,14 +81,14 @@ let sortIndexs = visibleRepositories.map((repo, index) => ({
 }));
 
 let sortedIndex = _sort(sortIndexs, '${config.prefix || '┡'} ');
-
-return sortedIndex.map(({ index, prefix }) => {
+const sorted = sortedIndex.map(({ index, prefix }) => {
   visibleRepositories[index].repository.provider.prefix = prefix;
   return visibleRepositories[index];
-});`);
+});
+return sorted;`);
 
 	transformer(ast, sortRepositoriesBody);
-	if (step !== 3) {
+	if (step !== 4) {
 		vscode.window.showErrorMessage('git submodule sort patch failed!!');
 		return;
 	}
@@ -154,14 +154,26 @@ function transformer(ast, sortRepositoriesBody) {
 					.map(r => r.repository);`);
 				path.node.body = t.blockStatement([getRepositoriesBody])
 				step++;
+
+				path.parentPath.traverse({
+						ClassMethod: function (path) {
+							if (path.node.kind === 'get' && path.node.key.name === 'repositories') {
+								const propertyName = path.node.body.body[0].argument.callee.object.property.name;
+								const getRepositoriesBody = template.ast(`return this.sortRepositories(this.${propertyName}).map(o => o.repository);`);
+								path.node.body = t.blockStatement([getRepositoriesBody])
+								step++;
+							}
+							if (path.node.key.name === 'toggleVisibility') {
+								if (path.toString().includes('this.visibleRepositories')) {
+									const sortRepositories = t.classMethod('method', t.identifier('sortRepositories'), [t.identifier('visibleRepositories')], t.blockStatement(sortRepositoriesBody))
+									path.insertAfter(sortRepositories);
+									step++;
+								}
+							}
+						}
+					});
 			}
-			if (path.node.key.name === 'toggleVisibility') {
-				if (path.toString().includes('this.visibleRepositories')) {
-					const sortRepositories = t.classMethod('method', t.identifier('sortRepositories'), [t.identifier('visibleRepositories')], t.blockStatement(sortRepositoriesBody))
-					path.insertAfter(sortRepositories);
-					step++;
-				}
-			}
+
 		},
 	});
 }
