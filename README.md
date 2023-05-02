@@ -1,5 +1,9 @@
 # git-submodule-sort
 
+
+Sort Git Submodules is a Visual Studio Code extension that provides a simple and easy way to sort Git submodules in your project. It allows you to sort your submodules as a tree view with just a few clicks, making it easier to manage your Git repositories.
+
+
 If both repositories use the same submodule, the VS code looks like this.
 ![](https://user-images.githubusercontent.com/2452450/114032085-8f400100-98ae-11eb-8acd-f03e1bf67444.png)
 
