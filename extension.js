@@ -37,9 +37,23 @@ async function backup() {
 	return true;
 }
 
-// TODO
-function restore() {
-
+// restore
+async function restore() {
+	const unWritable = await fs.promises.access(path.resolve(BASE_PATH, fileName), fs.constants.W_OK).catch(() => true);
+	if (unWritable) {
+		vscode.window.showErrorMessage('VS Code can not modify itself.');
+		return false;
+	}
+	const notBackup = await fs.promises.access(path.resolve(BASE_PATH, backUpFileName), fs.constants.F_OK).catch(e => {
+		console.log('backup file not exist', e);
+		return true;
+	});
+	if (notBackup) {
+		vscode.window.showErrorMessage('There is not a backup file.');
+		return;
+	}
+	await fs.promises.copyFile(path.resolve(BASE_PATH, backUpFileName), path.resolve(BASE_PATH, fileName));
+	vscode.window.showInformationMessage('restored.');
 }
 
 
@@ -156,22 +170,22 @@ function transformer(ast, sortRepositoriesBody) {
 				step++;
 
 				path.parentPath.traverse({
-						ClassMethod: function (path) {
-							if (path.node.kind === 'get' && path.node.key.name === 'repositories') {
-								const propertyName = path.node.body.body[0].argument.callee.object.property.name;
-								const getRepositoriesBody = template.ast(`return this.sortRepositories(this.${propertyName}).map(o => o.repository);`);
-								path.node.body = t.blockStatement([getRepositoriesBody])
+					ClassMethod: function (path) {
+						if (path.node.kind === 'get' && path.node.key.name === 'repositories') {
+							const propertyName = path.node.body.body[0].argument.callee.object.property.name;
+							const getRepositoriesBody = template.ast(`return this.sortRepositories(this.${propertyName}).map(o => o.repository);`);
+							path.node.body = t.blockStatement([getRepositoriesBody])
+							step++;
+						}
+						if (path.node.key.name === 'toggleVisibility') {
+							if (path.toString().includes('this.visibleRepositories')) {
+								const sortRepositories = t.classMethod('method', t.identifier('sortRepositories'), [t.identifier('visibleRepositories')], t.blockStatement(sortRepositoriesBody))
+								path.insertAfter(sortRepositories);
 								step++;
 							}
-							if (path.node.key.name === 'toggleVisibility') {
-								if (path.toString().includes('this.visibleRepositories')) {
-									const sortRepositories = t.classMethod('method', t.identifier('sortRepositories'), [t.identifier('visibleRepositories')], t.blockStatement(sortRepositoriesBody))
-									path.insertAfter(sortRepositories);
-									step++;
-								}
-							}
 						}
-					});
+					}
+				});
 			}
 
 		},
@@ -190,6 +204,9 @@ function activate(context) {
 	// The commandId parameter must match the command field in package.json
 	const patchInstall = vscode.commands.registerCommand('git-submodule-sort.patch', patch);
 	context.subscriptions.push(patchInstall);
+
+	const restorePatchInstall = vscode.commands.registerCommand('git-submodule-sort.restore', restore);
+	context.subscriptions.push(restorePatchInstall);
 }
 
 function deactivate() { }
