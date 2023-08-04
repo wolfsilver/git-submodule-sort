@@ -67,7 +67,11 @@ async function patch() {
 	}
 	const config = vscode.workspace.getConfiguration("git-submodule-sort");
 	const data = await fs.promises.readFile(path.resolve(BASE_PATH, backUpFileName), 'utf8')
-	const ast = parse(data);
+	const ast = parse(data, {
+		plugins: [
+			"classStaticBlock",
+		],
+	});
 
 	const sortRepositoriesBody = template.ast(`function _sort(repos, prefix) {
   repos.sort((a, b) => b.uri.length - a.uri.length);
