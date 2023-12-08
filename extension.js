@@ -100,7 +100,7 @@ let sortIndexs = visibleRepositories.map((repo, index) => ({
 
 let sortedIndex = _sort(sortIndexs, '${config.prefix || '┡'} ');
 const sorted = sortedIndex.map(({ index, prefix }) => {
-  visibleRepositories[index].repository.provider.prefix = prefix;
+  visibleRepositories[index].repository.provider.prefix = prefix || '';
   return visibleRepositories[index];
 });
 return sorted;`);
@@ -134,27 +134,20 @@ function transformer(ast, sortRepositoriesBody) {
 			if (path.node.key.name === 'renderElement') {
 				if (path.toString().includes('.provider.rootUri')) {
 					path.traverse({
-						IfStatement: function (path) {
+						ExpressionStatement: function (path) {
 							path.traverse({
-								CallExpression: function (path) {
+								AssignmentExpression: function (path) {
 									// r.name.textContent = f.basename(a.provider.rootUri)
 									// 1.59.0 a.name.textContent=(0,f.basename)(o.provider.rootUri)
-									if (t.isAssignmentExpression(path.parent) && path.node.arguments[0] && path.node.arguments[0].type === 'MemberExpression' &&
-										path.node.arguments[0].property.name === 'rootUri'
-									) {
-										path.replaceWith(
-											t.binaryExpression(
-												'+',
-												t.logicalExpression(
-													"||",
-													t.memberExpression(
-														t.memberExpression(t.identifier(path.node.arguments[0].object.object.name), t.identifier('provider')),
-														t.identifier('prefix')
-													),
-													t.stringLiteral('')
-												),
-												path.node
-											)
+									// 1.85.0 o.name.textContent=d.provider.name  => o.name.textContent=d.provider.prefix + d.provider.name
+									if (path.node.right.type === 'MemberExpression' && path.node.right.property.name === 'name') {
+										path.node.right = t.binaryExpression(
+											'+',
+											t.memberExpression(
+												path.node.right.object,
+												t.identifier('prefix')
+											),
+											path.node.right
 										);
 										path.skip();
 										step++;
