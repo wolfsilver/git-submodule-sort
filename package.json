@@ -17,7 +17,8 @@
     "commands": [
       {
         "command": "git-submodule-sort.patch",
-        "title": "Enable git submodule sort"
+        "title": "Enable git submodule sort",
+        "category": "Git"
       }
     ],
     "configuration": {

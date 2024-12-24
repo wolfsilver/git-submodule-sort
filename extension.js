@@ -16,7 +16,14 @@ let step = 0;
 
 
 function getVSCodePath() {
-	const app = path.dirname(require.main.filename);
+	const app = require.main
+		? path.dirname(require.main.filename)
+		: globalThis._VSCODE_FILE_ROOT;
+	if (!app) {
+		vscode.window.showInformationMessage("Unable to locate the installation path of VSCode. This extension won't work.");
+		return false;
+	}
+
 	BASE_PATH = path.join(app, "vs", "workbench");
 }
 
@@ -68,6 +75,7 @@ async function patch() {
 	const config = vscode.workspace.getConfiguration("git-submodule-sort");
 	const data = await fs.promises.readFile(path.resolve(BASE_PATH, backUpFileName), 'utf8')
 	const ast = parse(data, {
+		sourceType: 'module',
 		plugins: [
 			"classStaticBlock",
 		],
@@ -194,7 +202,9 @@ function transformer(ast, sortRepositoriesBody) {
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-	getVSCodePath();
+	if (getVSCodePath() === false) {
+		return;
+	}
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with  registerCommand
